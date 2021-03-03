@@ -12,7 +12,7 @@ from tensorflow.keras import layers
 print('TensorFlow version:',tf.__version__)
 
 # Load in data to data_dir
-data_dir = pathlib.Path('C:/Users/Jared/Desktop/ECEN 404/hello2/detect_data')
+data_dir = pathlib.Path('C:/Users/Jared/Desktop/ECEN 404/hello2/hands_nohands_data')
 # Find image count in folder
 image_count = len(list(data_dir.glob('*/*.jpg')))
 print('Image total in detect_data:',image_count)
@@ -86,7 +86,7 @@ model.compile(optimizer='adam',
 
 model.summary()
 
-epochs=5
+epochs = 1
 history = model.fit(
   train_ds,
   validation_data=val_ds,
@@ -113,8 +113,9 @@ plt.plot(epochs_range, loss, label='Training Loss')
 plt.plot(epochs_range, val_loss, label='Validation Loss')
 plt.legend(loc='upper right')
 plt.title('Training and Validation Loss')
-plt.show()
+#plt.show()
 
+# Implement augmentation and data dropout
 data_augmentation = tf.keras.Sequential(
   [
     layers.experimental.preprocessing.RandomFlip("horizontal",
@@ -126,6 +127,7 @@ data_augmentation = tf.keras.Sequential(
   ]
 )
 
+# Create a new model with dropout
 model = tf.keras.Sequential([
   data_augmentation,
   layers.experimental.preprocessing.Rescaling(1./255),
@@ -172,24 +174,35 @@ plt.plot(epochs_range, loss, label='DA Training Loss')
 plt.plot(epochs_range, val_loss, label='DA Validation Loss')
 plt.legend(loc='upper right')
 plt.title('DA Training and Validation Loss')
-plt.show()
+#plt.show()
 
 # Loading in new data for testing
-test_path = pathlib.Path('C:/Users/Jared/Desktop/ECEN 404/hello2/detect_test/1.jpg')
+x = 1
+while x < 25:
+    if x == 1:
+        print("Not similar to training set")
+    if x == 13:
+        print("Similar to training set")
+    xStr = str(x)
+    test_path = pathlib.Path('C:/Users/Jared/Desktop/ECEN 404/hello2/detect_test/'+xStr+'.jpg')
 
-img = tf.keras.preprocessing.image.load_img(
-    test_path, target_size=(img_height, img_width)
-)
-img_array = tf.keras.preprocessing.image.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0) # Create a batch
+    img = tf.keras.preprocessing.image.load_img(
+        test_path, target_size=(img_height, img_width)
+    )
+    img_array = tf.keras.preprocessing.image.img_to_array(img)
+    img_array = tf.expand_dims(img_array, 0) # Create a batch
 
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])
+    print('Image:',x)
+    print(
+        "Image most likely belongs to {} with a {:.2f} percent confidence."
+        .format(class_names[np.argmax(score)], 100 * np.max(score))
+    )
+    x = x + 1
 
-print(
-    "This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
+model.save('hand_detector_model.h5')
+print("Model has been saved")
 
 
 
