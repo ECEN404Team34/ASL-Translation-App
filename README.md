@@ -1,3 +1,3 @@
 # ASL-Translation-App
 
-hand_split.py and hand_detector.py written in TensorFlow 2.3.0, Python 3.7.6, OpenCV 4.5.1
+We were tasked with designing a solution that would bridge the communication gap between people that are deaf or hearing impaired and those that are not. As such, this project was focused on designing an Android app that translates American Sign Language (ASL) fingerspelling to English text and English audio to ASL. The Android app is written in Java, while the translation programs are written in Python 3.7.The English speech to ASL video translation portion of the application utilizes Google’s Speech to Text translator and Amazon Web Services to be able to translate the users English speech input into an ASL video. The ASL to text system applies computer vision methods such as classification, detection, localization, and segmentation through the use of TensorFlow, Keras, scikit, and OpenCV.
