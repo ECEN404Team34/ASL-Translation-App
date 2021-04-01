@@ -30,12 +30,71 @@ import time
 
 from six import BytesIO
 
+import os
+import cv2 as cv
+import tensorflow as tf
+import numpy as np
+import pathlib
+import shutil
+import sys
+
 import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
 import tensorflow as tf
 #from object_detection.utils import visualization_utils as viz_utils
+
+# PHASE 1: INPUT A VIDEO, OUTPUT A FOLDER OF FRAMES
+# Current problems: None
+
+# "input" file folder waits for .mp4 to show up
+dir_name = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'
+print("Waiting for video file...")
+while not os.listdir(dir_name):
+    wait_variable = 0
+
+print("Files have been found at " + dir_name)
+
+# mp4 arrives via AWS (currently via drag and drop)
+
+# Find file name
+onlyfiles = [f for f in os.listdir(dir_name) if os.path.isfile(os.path.join(dir_name, f))]
+
+mypath = dir_name
+# Create file path based on video name assuming there's only one file at the specified directory
+mypath = mypath + onlyfiles[0]
+
+# Captures frame_test.mp4 and assigns it to cap
+cap = cv.VideoCapture(mypath)
+
+# Default is 60 fps
+count = 1  # Number of total frames
+freq = 10  # Save an image every "freq" frames
+file = 1  # File numbering variable
+
+print(os.getcwd())
+
+# While the video is being processed
+print("Video slicing has begun")
+while cap.isOpened():
+    fileStr = str(file)
+    ret, frame = cap.read()
+    if not ret:
+        print("Video slicing has been completed")
+        break
+    if count % freq == 0:
+        cv.imwrite(dir_name+fileStr + '.jpg', frame)
+        print(fileStr + '.jpg')
+        #print('/frames/'+fileStr+'.jpg')
+        #print(os.getcwd())
+        file = file + 1
+    count = count + 1
+
+cap.release()
+#cv.destroyAllWindows()
+print("Total frames:", count - 1)
+print("Frames saved:", file - 1)
 
 _TITLE_LEFT_MARGIN = 10
 _TITLE_TOP_MARGIN = 10
@@ -64,7 +123,6 @@ STANDARD_COLORS = [
     'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White',
     'WhiteSmoke', 'Yellow', 'YellowGreen'
 ]
-
 
 def _get_multiplier_for_color_randomness():
   """Returns a multiplier to get semi-random colors from successive indices.
@@ -1240,16 +1298,17 @@ def visualize_boxes_and_labels_on_image_array(
     #print(ymin_int,xmin_int,ymax_int,xmax_int)
 
     #image2 = Image.fromarray(image)
-    #image2.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/sample_crop1.jpg')
+    #image2.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/pre_crop'+counterStr+'.jpg')
+
     sqrWidth = 200
     counterStr = str(counter+1)
     image_cropped = image[ymin_int:ymax_int,xmin_int:xmax_int]
     image_cropped = Image.fromarray(image_cropped)
-    image_cropped.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/'+counterStr+'.jpg')
-    img = Image.open('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/'+counterStr+'.jpg')
+    image_cropped.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
+    img = Image.open('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
     img_resize = img.resize((sqrWidth, sqrWidth))
-    img_resize.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/'+counterStr+'.jpg')
-    print('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/'+counterStr+'.jpg')
+    img_resize.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
+    print('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
 
     #counter =+ 1
     #image_cropped.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/sample_crop2.jpg')
@@ -1579,11 +1638,11 @@ print('Elapsed time: ' + str(elapsed_time) + 's')
 import time
 
 #image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/test_data/'
-image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_data'
+image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'
 
 elapsed = []
-for i in range(52):
-  image_path = os.path.join(image_dir, 'image' + str(i + 1) + '.jpg')
+for i in range(count-1):
+  image_path = os.path.join(image_dir, str(i + 1) + '.jpg')
   image_np = load_image_into_numpy_array(image_path)
   input_tensor = np.expand_dims(image_np, 0)
   start_time = time.time()
@@ -1608,13 +1667,13 @@ for i in range(52):
   #plt.subplot(2, 1, i+1)
   #plt.imshow(image_np_with_detections)
   #plt.savefig('validation_results/result' + str(i + 1) + '.jpg')
-  print('validation_results/result' + str(i + 1) + '.jpg')
+  print('output/' + str(i + 1) + '.jpg')
 
 mean_elapsed = sum(elapsed) / float(len(elapsed))
 print('Elapsed time: ' + str(mean_elapsed) + ' second per image')
 
 import os
-path = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results'
+path = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output'
 for filename in os.listdir(path):
     new_filename = filename.zfill(10)
     os.rename(os.path.join(path, filename), os.path.join(path, new_filename))
