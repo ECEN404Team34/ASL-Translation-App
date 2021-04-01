@@ -96,6 +96,16 @@ cap.release()
 print("Total frames:", count - 1)
 print("Frames saved:", file - 1)
 
+counter2 = 1
+while counter2 <= (file-1):
+    counter2Str = str(counter2)
+    sqrWidth = 200
+    img = Image.open('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'+counter2Str+'.jpg')
+    img_resize = img.resize((sqrWidth, sqrWidth))
+    img_resize.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'+counter2Str+'.jpg')
+    print('input/'+counter2Str+'.jpg')
+    counter2 += 1
+
 _TITLE_LEFT_MARGIN = 10
 _TITLE_TOP_MARGIN = 10
 STANDARD_COLORS = [
@@ -1308,7 +1318,7 @@ def visualize_boxes_and_labels_on_image_array(
     img = Image.open('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
     img_resize = img.resize((sqrWidth, sqrWidth))
     img_resize.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
-    print('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/'+counterStr+'.jpg')
+    #print('Hand detected: output/'+counterStr+'.jpg')
 
     #counter =+ 1
     #image_cropped.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/sample_crop2.jpg')
@@ -1641,7 +1651,7 @@ import time
 image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'
 
 elapsed = []
-for i in range(count-1):
+for i in range(file-1):
   image_path = os.path.join(image_dir, str(i + 1) + '.jpg')
   image_np = load_image_into_numpy_array(image_path)
   input_tensor = np.expand_dims(image_np, 0)
@@ -1667,7 +1677,7 @@ for i in range(count-1):
   #plt.subplot(2, 1, i+1)
   #plt.imshow(image_np_with_detections)
   #plt.savefig('validation_results/result' + str(i + 1) + '.jpg')
-  print('output/' + str(i + 1) + '.jpg')
+  #print('Image scanned: output/' + str(i + 1) + '.jpg')
 
 mean_elapsed = sum(elapsed) / float(len(elapsed))
 print('Elapsed time: ' + str(mean_elapsed) + ' second per image')
@@ -1677,5 +1687,11 @@ path = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo
 for filename in os.listdir(path):
     new_filename = filename.zfill(10)
     os.rename(os.path.join(path, filename), os.path.join(path, new_filename))
+
+test = os.listdir(dir_name)
+
+for item in test:
+    if item.endswith(".jpg"):
+        os.remove(os.path.join(dir_name, item))
 
 
