@@ -21,6 +21,21 @@ from object_detection.core import keypoint_ops
 from object_detection.core import standard_fields as fields
 from object_detection.utils import shape_utils
 
+import gzip, os, re
+from math import log
+
+
+
+__version__ = '2.0.0'
+
+#Testing Code
+from math import log
+from keras.models import load_model
+import sklearn as sk
+from sklearn.metrics import classification_report
+from sklearn.metrics import plot_confusion_matrix
+from tensorflow.keras.models import load_model
+
 import io
 import os
 import scipy.misc
@@ -49,6 +64,9 @@ import tensorflow as tf
 # Current problems: None
 
 # "input" file folder waits for .mp4 to show up
+
+start_time_total = time.time()
+
 dir_name = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'
 print("Waiting for video file...")
 while not os.listdir(dir_name):
@@ -57,8 +75,6 @@ while not os.listdir(dir_name):
 print("Files have been found at " + dir_name)
 
 # mp4 arrives via AWS (currently via drag and drop)
-
-start_time_total = time.time()
 
 # Find file name
 onlyfiles = [f for f in os.listdir(dir_name) if os.path.isfile(os.path.join(dir_name, f))]
@@ -72,10 +88,10 @@ cap = cv.VideoCapture(mypath)
 
 # Default is 60 fps
 count = 1  # Number of total frames
-freq = 20  # Save an image every "freq" frames
+freq = 5  # Save an image every "freq" frames
 file = 1  # File numbering variable
 
-print(os.getcwd())
+#print(os.getcwd())
 
 # While the video is being processed
 print("Video slicing has begun")
@@ -1289,7 +1305,7 @@ def visualize_boxes_and_labels_on_image_array(
     img = Image.open('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/test/'+counterStr+'.jpg')
     img_resize = img.resize((sqrWidth, sqrWidth))
     img_resize.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/test/'+counterStr+'.jpg')
-    print('Hand detected: output/'+counterStr+'.jpg')
+    print('Hand detected: output/test/'+counterStr+'.jpg')
 
     #counter =+ 1
     #image_cropped.save('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation_results/sample_crop2.jpg')
@@ -1604,11 +1620,11 @@ print('Elapsed time: ' + str(elapsed_time) + 's')
 
 import time
 
-image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/validation/'
-#image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'
+#image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/test_data/'
+image_dir = 'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/input/'
 
 elapsed = []
-for i in range(208):
+for i in range(file-1):
   image_path = os.path.join(image_dir, str(i + 1) + '.jpg')
   image_np = load_image_into_numpy_array(image_path)
   input_tensor = np.expand_dims(image_np, 0)
@@ -1634,7 +1650,6 @@ for i in range(208):
   #plt.subplot(2, 1, i+1)
   plt.imshow(image_np_with_detections)
   plt.savefig('validation_results/result' + str(i + 1) + '.jpg')
-  #plt.savefig('output/test/result' + str(i + 1) + '.jpg')
   print('Image scanned: output/' + str(i + 1) + '.jpg')
 
 mean_elapsed = sum(elapsed) / float(len(elapsed))
@@ -1655,8 +1670,161 @@ for item in test:
     if item.endswith(".jpg"):
         os.remove(os.path.join(dir_name, item))
 
+
+
+
+
+#loading the trained and validated model
+current_model = load_model('C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/Us_model_best.h5')
+
+
+import numpy as np
+from keras.preprocessing import image
+from keras.preprocessing.image import ImageDataGenerator
+
+
+#gathering test data and setting parameters
+test_datagen = ImageDataGenerator(
+        rescale=1./255)
+
+test_gen = test_datagen.flow_from_directory(
+    'C:/Users/Jared/Desktop/ECEN404/hello2/TensorFlow/workspace/training_demo/output/',                     #will need to change to our app
+    batch_size = 1,                         #directory
+    class_mode = 'categorical',
+    target_size = (64,64),
+    shuffle=False
+    )
+
+
+predictions = current_model.predict(test_gen)
+predictions = np.argmax(predictions, axis=1)
+
+a = 97 #ascii for character before a s.t. if image = a, pred = 1+96
+#numpy array to letters
+res = ""
+predictions = [p + a for p in predictions]
+for val in predictions:
+    res = res + chr(val)
+
+#2nd try
+# I did not author this code, only tweaked it from:
+# http://stackoverflow.com/a/11642687/2449774
+# Thanks Generic Human!
+
+
+# Modifications by Scott Randal (Genesys)
+#
+# 1. Preserve original character case after splitting
+# 2. Avoid splitting every post-digit character in a mixed string (e.g. 'win32intel')
+# 3. Avoid splitting digit sequences
+# 4. Handle input containing apostrophes (for possessives and contractions)
+#
+# Wordlist changes:
+# Change 2 required adding single digits to the wordlist
+# Change 4 required the following wordlist additions:
+#   's
+#   '
+#   <list of contractions>
+
+
+class LanguageModel(object):
+  def __init__(self, word_file):
+    # Build a cost dictionary, assuming Zipf's law and cost = -math.log(probability).
+    with gzip.open(word_file) as f:
+      words = f.read().decode().split()
+    self._wordcost = dict((k, log((i+1)*log(len(words)))) for i,k in enumerate(words))
+    self._maxword = max(len(x) for x in words)
+
+
+  def split(self, s):
+    """Uses dynamic programming to infer the location of spaces in a string without spaces."""
+    l = [self._split(x) for x in _SPLIT_RE.split(s)]
+    return [item for sublist in l for item in sublist]
+
+
+  def _split(self, s):
+    # Find the best match for the i first characters, assuming cost has
+    # been built for the i-1 first characters.
+    # Returns a pair (match_cost, match_length).
+    def best_match(i):
+      candidates = enumerate(reversed(cost[max(0, i-self._maxword):i]))
+      return min((c + self._wordcost.get(s[i-k-1:i].lower(), 9e999), k+1) for k,c in candidates)
+
+    # Build the cost array.
+    cost = [0]
+    for i in range(1,len(s)+1):
+      c,k = best_match(i)
+      cost.append(c)
+
+    # Backtrack to recover the minimal-cost string.
+    out = []
+    i = len(s)
+    while i>0:
+      c,k = best_match(i)
+      assert c == cost[i]
+      # Apostrophe and digit handling (added by Genesys)
+      newToken = True
+      if not s[i-k:i] == "'": # ignore a lone apostrophe
+        if len(out) > 0:
+          # re-attach split 's and split digits
+          if out[-1] == "'s" or (s[i-1].isdigit() and out[-1][0].isdigit()): # digit followed by digit
+            out[-1] = s[i-k:i] + out[-1] # combine current token with previous token
+            newToken = False
+      # (End of Genesys addition)
+
+      if newToken:
+        out.append(s[i-k:i])
+
+      i -= k
+
+    return reversed(out)
+
+#DEFAULT_LANGUAGE_MODEL = LanguageModel('C:/Users\Jared\Desktop\ECEN404\hello2\TensorFlow\workspace/training_demo\wordninja/wordninja_words.txt.txt
+DEFAULT_LANGUAGE_MODEL = LanguageModel(os.path.join(os.path.dirname(os.path.abspath(__file__)),'wordninja','wordninja_words.txt.gz'))
+_SPLIT_RE = re.compile("[^a-zA-Z0-9']+")
+
+def split(s):
+  return DEFAULT_LANGUAGE_MODEL.split(s)
+
+c = 'wethepeopleoftheunitedstatesinordertoformamoreperfectunionestablishjusticeinsuredomestictranquilityprovideforthecommondefencepromotethegeneralwelfareandsecuretheblessingsoflibertytoourselvesandourposteritydoordainandestablishthisconstitutionfortheunitedstatesofamerica'
+d = 'WeholdthesetruthstobeselfevidentthatallmenarecreatedequalthattheyareendowedbytheirCreatorwithcertainunalienableRightsthatamongtheseareLifeLibertyandthepursuitofHappinessThattosecuretheserightsGovernmentsareinstitutedamongMenderivingtheirjustpowersfromtheconsentofthegovernedThatwheneveranyFormofGovernmentbecomesdestructiveoftheseendsitistheRightofthePeopletoalterortoabolishitandtoinstitutenewGovernmentlayingitsfoundationonsuchprinciplesandorganizingitspowersinsuchformastothemshallseemmostlikelytoeffecttheirSafetyandHappinessPrudenceindeedwilldictatethatGovernmentslongestablishedshouldnotbechangedforlightandtransientcausesandaccordinglyallexperiencehathshewnthatmankindaremoredisposedtosufferwhileevilsaresufferablethantorightthemselvesbyabolishingtheformstowhichtheyareaccustomedButwhenalongtrainofabusesandusurpationspursuinginvariablythesameObjectevincesadesigntoreducethemunderabsoluteDespotismitistheirrightitistheirdutytothrowoffsuchGovernmentandtoprovidenewGuardsfortheirfuturesecuritSuchhasbeenthepatientsufferanceoftheseColoniesandsuchisnowthenecessitywhichconstrainsthemtoaltertheirformerSystemsofGovernmentThehistoryofthepresentKingofGreatBritainisahistoryofrepeatedinjuriesandusurpationsallhavingindirectobjecttheestablishmentofanabsoluteTyrannyovertheseStatesToprovethisletFactsbesubmittedtoacandidworld'
+r = 'HowdymynameisBrittanyPitcherandiamanelectricalengineeringmajorfromspringtxbutmostimportantlyiamtheloudestandproudestmemberofthefightingtexasaggieclassoftwentytwentyoneawhoop'
+z = 'hellomynameisbrittanypitcherandmyfavoritecolorismarooniaminseniordesignrightnowthisiswhyiamworkingonthisprojectitismeanttohelpthosewhoarehardofhearingordeaftoovercomelanguagebarrierswiththeirpeersiamexcitedforittobefinishedandtodeterminghowwellitworks'
+
+#create string of r, c, d
+c = " ".join(split(c))
+d = " ".join(split(d))
+r = " ".join(split(r))
+z = " ".join(split(z))
+
+
+
+#try to split sentences
+
+from nnsplit import NNSplit
+splitter = NNSplit.load("en")
+
+splits = splitter.split([res])[0]
+
+i = len(splits)-1
+#split can be iterated over
+for sentence in splits:
+    print (sentence,end='')
+    if(i>0):
+        print("\b.")
+        i = i-1
+    else:
+        print('.')
+
 end_time_total = time.time()
 total_time = end_time_total - start_time_total
 total_time_minutes = int(total_time/60)
 total_time_seconds = int(total_time % 60)
 print("Total time elapsed: ", total_time_minutes, "minutes and", total_time_seconds, "seconds.")
+
+test2 = os.listdir(dir_name)
+
+for item in test2:
+    if item.endswith(".jpg"):
+        os.remove(os.path.join(dir_name, item))
+
